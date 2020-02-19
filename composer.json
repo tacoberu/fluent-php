@@ -1,0 +1,32 @@
+{
+	"name": "tacoberu/fluent-intl",
+	"description": "PHP implementation of Project Fluent. Localization library for expressive translations.",
+	"type": "library",
+	"license": "MIT",
+	"keywords": [
+		"localization",
+		"l10n",
+		"internationalization",
+		"i18n",
+		"ftl",
+		"plural",
+		"gender",
+		"locale",
+		"language",
+		"formatting",
+		"translate",
+		"translation",
+		"format",
+		"parser"
+	],
+	"require": {
+		"php" : ">=5.3.3"
+	},
+    "require-dev": {
+		"phpunit/phpunit": "~4.0",
+        "tracy/tracy": "^2.0"
+    },
+	"autoload": {
+		"classmap": ["libs"]
+	}
+}
