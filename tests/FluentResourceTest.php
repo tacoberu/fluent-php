@@ -24,8 +24,8 @@ greet-by-name = Hello, { $name }!
 		$this->assertEquals('Messages', $res->getType());
 		$this->assertEquals([
 			self::makeMessage("-brand-name", "Foo 3000"),
-			self::makeMessage("welcome", 'Welcome, {$name}, to {-brand-name}!', ['$name', '-brand-name']),
-			self::makeMessage("greet-by-name", 'Hello, {$name}!', ['$name']),
+			self::makeMessage("welcome", 'Welcome, {$name}, to {-brand-name}!', ['$name' => Null, '-brand-name' => Null]),
+			self::makeMessage("greet-by-name", 'Hello, {$name}!', ['$name' => Null]),
 		], $res->getMessages());
 	}
 
@@ -33,6 +33,7 @@ greet-by-name = Hello, { $name }!
 
 	function testFail()
 	{
+		$this->setExpectedException(LogicException::class, '');
 		$res = new FluentResource('
 welcome
 ');

@@ -49,7 +49,27 @@ class FluentTranslatorTest extends PHPUnit_Framework_TestCase
 				, 'Foo 3000'],
 			['greet-by-name', ["name" => "Taco"]
 				, 'Hello, Taco!'],
+			['shared-photos', ["userName" => "Taco", 'photoCount' => 'one']
+				, '  Taco co  added a new photo for Taco.'],
+			['shared-photos', ["userName" => "Taco", 'photoCount' => 'two']
+				, '  Taco co  added two photos Foo 3000.'],
 		];
+	}
+
+
+
+	function testFail()
+	{
+		$bundle = $this->getBundle();
+		$this->assertNull($bundle->getMessage('noop'));
+
+		$msg = $bundle->getMessage('welcome');
+		list($msg, $err) = $bundle->formatPattern($msg->value, []);
+		$this->assertSame('Welcome, {$name}, to Foo 3000!', $msg);
+		$this->assertEquals([(object) [
+			'type' => 'FluentReferenceError',
+			'msg' => 'Unknown external: name',
+		]], $err);
 	}
 
 
@@ -61,6 +81,13 @@ class FluentTranslatorTest extends PHPUnit_Framework_TestCase
 -brand-name = Foo 3000
 welcome = Welcome, {$name}, to {-brand-name}!
 greet-by-name = Hello, { $name }!
+
+shared-photos =
+  {$userName} co {$photoCount ->
+    *[one] added a new photo for {$userName}
+     [two] added two photos {-brand-name}
+  }.
+
 '));
 		return $bundle;
 	}

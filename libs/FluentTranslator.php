@@ -31,7 +31,9 @@ class FluentTranslator
 
 	function getMessage($id)
 	{
-		return $this->items[$id];
+		if (isset($this->items[$id])) {
+			return $this->items[$id];
+		}
 	}
 
 
@@ -41,32 +43,84 @@ class FluentTranslator
 	 */
 	function formatPattern($msgvalue, array $args)
 	{
-		$map = [];
 		$error = [];
-		foreach ($args as $x => $v) {
-			$map["{\$$x}"] = $v;
-		}
-		foreach ($msgvalue->args as $id) {
+
+		$arguments = self::getAllArguments($msgvalue);
+		$expression = $msgvalue->expression;
+
+		$globally = [];
+		foreach ($arguments as $id => $formater) {
 			switch (True) {
-				case $id[0] === '$':
+				case $id[0] === '-':
+					if ($msg = $this->getMessage($id)) {
+						list($val, $err) = $this->formatPattern($msg->value, []);
+						$globally['{' . $id . '}'] = $val;
+						$error = array_merge($error, $err);
+					}
+					else {
+						$error[] = self::makeError('Missing', "Missing msg: {$id}");
+					}
+					break;
+			}
+		}
+
+		$map = $globally;
+		foreach ($arguments as $id => $formater) {
+			switch (True) {
+				case $id[0] === '$' && $formater:
+					$map["{{$id}}"] = $formater->invoke($args[substr($id, 1)], $args);
+					break;
+			}
+		}
+		$expression = strtr($expression, $map);
+
+		$map = $globally;
+		foreach ($arguments as $id => $formater) {
+			switch (True) {
+				case $id[0] === '-':
+				case $id[0] === '$' && $formater:
+					break;
+				case $id[0] === '$' && empty($formater):
 					if ( ! array_key_exists(substr($id, 1), $args)) {
 						$error[] = self::formatFluentReferenceError(substr($id, 1));
 					}
-					break;
-				case $id[0] === '-':
-					$msg = $this->getMessage($id);
-					list($val, $err) = $this->formatPattern($msg->value, []);
-					$map['{' . $id . '}'] = $val;
-					$error = array_merge($error, $err);
+					else {
+						$map["{{$id}}"] = $args[substr($id, 1)];
+					}
 					break;
 				default:
 					dump($id);
 					die('=====[' . __line__ . '] ' . __file__);
 			}
 		}
+
 		return [
-			strtr($msgvalue->expression, $map),
+			strtr($expression, $map),
 			$error
+		];
+	}
+
+
+
+	private static function getAllArguments($msg)
+	{
+		$res = [];
+		foreach ($msg->args as $k => $v) {
+			if ($v instanceof Choice) {
+				$res = array_merge($res, $v->getAllArguments());
+			}
+			$res[$k] = $v;
+		}
+		return $res;
+	}
+
+
+
+	private static function makeError($type, $label)
+	{
+		return (object) [
+			'type' => $type . 'Error',
+			'msg' => $label,
 		];
 	}
 
