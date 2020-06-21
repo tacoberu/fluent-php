@@ -87,22 +87,31 @@ shared-photos =
 
 
 
-	function _testCorrect()
+	function testStringLiteral()
 	{
-		$res = (new FluentParser)->parse('opening-brace = This message features an opening curly brace: {"{"}.');
-		dump($res);
+		$res = (new FluentParser)->parse('opening-brace = This message features an opening curly brace: {"{-\"-"}.');
+		$this->assertCount(1, $res);
+		$this->assertEquals(self::makeMessage("opening-brace", 'This message features an opening curly brace: {-"-.'), $res[0]);
 	}
 
 
 
-	function _testFail()
+	function testFail()
 	{
-		$this->setExpectedException();
-		$res = (new FluentParser)->parse('
+		try {
+			(new FluentParser)->parse('
 welcome
 ');
-		$this->assertEquals('Junk', $res->type);
-		$this->assertEquals('welcome', $res->content);
+		}
+		catch (LogicException $e) {
+			$this->assertSame(0, $e->getCode());
+			$this->assertEquals("Unexpected token on line 2, column 1: expected token '9' or '1'
+ 1 > "."
+ 2 > welcome
+  ---^
+ 3 > "."
+", $e->getMessage());
+		}
 	}
 
 

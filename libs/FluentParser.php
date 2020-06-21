@@ -14,6 +14,7 @@ use Taco\BNF\Combinators\Match;
 use Taco\BNF\Combinators\Sequence;
 use Taco\BNF\Combinators\Variants;
 use Taco\BNF\Combinators\Indent;
+use Taco\BNF\Combinators\Text;
 use Taco\FluentIntl\BNF\FluentSelectExpression;
 use LogicException;
 
@@ -40,11 +41,17 @@ class FluentParser
 		$textElement = new Pattern('TextElement', ['~[^\{\}]+~s']);
 		$variableReference = new Pattern('VariableReference', ['~\{\s*' . self::$symbolPattern . '\s*\}~i']);
 		$selectExpression = new FluentSelectExpression('SelectExpression');
+		$stringLiteral = new Sequence('StringLiteral', [
+			new Pattern(Null, ['~\{[ \t]*~'], False),
+			new Text('StringLiteral'),
+			new Pattern(Null, ['~[ \t]*\}~'], False),
+		]);
 
 		$pattern = new Variants('Pattern', [
 			$nl,
 			$variableReference,
 			$selectExpression,
+			$stringLiteral,
 			$textElement,
 		]);
 
@@ -69,8 +76,6 @@ class FluentParser
 
 	function parse($src)
 	{
-		//~ list($token, $expected) = $this->schema->scan($src, 0, []);
-		//~ dump($token, $expected);
 		return self::castAny($this->parser->parse($src));
 	}
 
@@ -127,6 +132,8 @@ class FluentParser
 				];
 			case 'TextElement':
 				return $node->content;
+			case 'StringLiteral':
+				return substr($node->content, 1, -1);
 			case 'VariableReference':
 				return (object) [
 					'type' => 'VariableReference',
