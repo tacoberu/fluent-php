@@ -53,6 +53,10 @@ class FluentTranslatorTest extends PHPUnit_Framework_TestCase
 				, '  Taco co  added a new photo for Taco.'],
 			['shared-photos', ["userName" => "Taco", 'photoCount' => 'two']
 				, '  Taco co  added two photos Foo 3000.'],
+			['menu-save', []
+				, 'Save'],
+			['help-menu-save', []
+				, 'Click Save to save the file.'],
 		];
 	}
 
@@ -81,6 +85,8 @@ class FluentTranslatorTest extends PHPUnit_Framework_TestCase
 -brand-name = Foo 3000
 welcome = Welcome, {$name}, to {-brand-name}!
 greet-by-name = Hello, { $name }!
+menu-save = Save
+help-menu-save = Click { menu-save } to save the file.
 
 shared-photos =
   {$userName} co {$photoCount ->

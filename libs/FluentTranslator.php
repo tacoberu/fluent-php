@@ -52,6 +52,7 @@ class FluentTranslator
 		foreach ($arguments as $id => $formater) {
 			switch (True) {
 				case $id[0] === '-':
+				case $id[0] !== '$':
 					if ($msg = $this->getMessage($id)) {
 						list($val, $err) = $this->formatPattern($msg->value, []);
 						$globally['{' . $id . '}'] = $val;
@@ -88,9 +89,8 @@ class FluentTranslator
 						$map["{{$id}}"] = $args[substr($id, 1)];
 					}
 					break;
-				default:
-					dump($id);
-					die('=====[' . __line__ . '] ' . __file__);
+				case $id[0] !== '$':
+					break;
 			}
 		}
 
