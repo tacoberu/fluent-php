@@ -36,7 +36,7 @@ class FluentParser
 	{
 		$sep = new Whitechars(Null, False);
 		$nl = new Pattern(Null, ['~\n+~'], False);
-		$comment = new Pattern('Comment', ['~^#.*$~m']);
+		$comment = new Pattern('Comment', ['~^#.*$~m'], False);
 		$identifier = new Pattern('Identifier', ['~' . self::$symbolPattern . '~']);
 		$textElement = new Pattern('TextElement', ['~[^\{\}]+~s']);
 		$variableReference = new Pattern('VariableReference', ['~\{\s*' . self::$symbolPattern . '\s*\}~i']);

@@ -26,14 +26,14 @@ shared-photos = ahoj jak
      [two] added two photos
   }.');
 
-		$this->assertCount(4, $res);
-		$this->assertEquals('Message', $res[3]->type);
-		$this->assertEquals('shared-photos', $res[3]->id);
-		$this->assertEquals("ahoj jak\n  se máš. {\$userName} co  {\$photoCount}.", $res[3]->value->expression);
+		$this->assertCount(1, $res);
+		$this->assertEquals('Message', $res[0]->type);
+		$this->assertEquals('shared-photos', $res[0]->id);
+		$this->assertEquals("ahoj jak\n  se máš. {\$userName} co  {\$photoCount}.", $res[0]->value->expression);
 		$this->assertEquals(['$userName' => Null, '$photoCount' => new Choice([
 			'one' => ' added a new photo',
 			'two' => ' added two photos',
-		], 'one')], $res[3]->value->args);
+		], 'one')], $res[0]->value->args);
 	}
 
 
@@ -70,10 +70,10 @@ shared-photos =
        *[other] their stream
     }.
 ');
-		$this->assertCount(4, $res);
-		$this->assertEquals(self::makeComment("# Simple things are simple."), $res[0]);
-		$this->assertEquals(self::makeMessage("hello-user", 'Hello, {$userName}!', ['$userName' => Null]), $res[1]);
-		$this->assertEquals(self::makeComment("# Complex things are possible."), $res[2]);
+		$this->assertCount(2, $res);
+		//~ $this->assertEquals(self::makeComment("# Simple things are simple."), $res[0]);
+		$this->assertEquals(self::makeMessage("hello-user", 'Hello, {$userName}!', ['$userName' => Null]), $res[0]);
+		//~ $this->assertEquals(self::makeComment("# Complex things are possible."), $res[2]);
 		$this->assertEquals(self::makeMessage("shared-photos", '    {$userName} {$photoCount}.', [
 			'$userName' => Null,
 			'$photoCount' => new Choice([
@@ -82,7 +82,7 @@ shared-photos =
 				'male' => ' his stream',
 				'female' => ' her stream',
 			], 'other', ['$photoCount' => Null]),
-		]), $res[3]);
+		]), $res[1]);
 	}
 
 
