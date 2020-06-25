@@ -11,6 +11,7 @@ use Taco\BNF\Token;
 use Taco\BNF\Combinators\Whitechars;
 use Taco\BNF\Combinators\Pattern;
 use Taco\BNF\Combinators\Match;
+use Taco\BNF\Combinators\OneOf;
 use Taco\BNF\Combinators\Sequence;
 use Taco\BNF\Combinators\Variants;
 use Taco\BNF\Combinators\Indent;
@@ -39,19 +40,18 @@ class FluentParser
 		$comment = new Pattern('Comment', ['~^#.*$~m'], False);
 		$identifier = new Pattern('Identifier', ['~' . self::$symbolPattern . '~']);
 		$textElement = new Pattern('TextElement', ['~[^\{\}]+~s']);
-		$variableReference = new Pattern('VariableReference', ['~\{\s*' . self::$symbolPattern . '\s*\}~i']);
-		$selectExpression = new FluentSelectExpression('SelectExpression');
-		$stringLiteral = new Sequence('StringLiteral', [
+		$variableReference = new Sequence('VariableReference', [
 			new Pattern(Null, ['~\{[ \t]*~'], False),
-			new Text('StringLiteral'),
+			new OneOf(Null, [
+				new Pattern('VariableReference', ['~' . self::$symbolPattern . '~']),
+				new Text('StringLiteral'),
+			]),
 			new Pattern(Null, ['~[ \t]*\}~'], False),
 		]);
-
 		$pattern = new Variants('Pattern', [
 			$nl,
 			$variableReference,
-			$selectExpression,
-			$stringLiteral,
+			new FluentSelectExpression('SelectExpression'),
 			$textElement,
 		]);
 
