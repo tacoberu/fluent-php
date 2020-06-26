@@ -22,6 +22,25 @@ class FluentTranslatorTest extends PHPUnit_Framework_TestCase
 
 
 
+	function testGetMessage2()
+	{
+		$id = "time-elapse1";
+		$bundle = $this->getBundle();
+		$msg = $bundle->getMessage($id);
+
+		$args = [
+			'name' => 'Mia',
+			'userName' => 'Mia',
+			'photoCount' => 'two',
+			'duration' => 3.14,
+		];
+		list($out, $err) = $bundle->formatPattern($msg->value, $args);
+		$this->assertSame('Time elapsed: 3.14s.', $out);
+		$this->assertSame([], $err);
+	}
+
+
+
 	/**
 	 * @dataProvider dataFormatPattern
 	 */
@@ -57,6 +76,12 @@ class FluentTranslatorTest extends PHPUnit_Framework_TestCase
 				, 'Save'],
 			['help-menu-save', []
 				, 'Click Save to save the file.'],
+			['time-elapse1', ['duration' => 3.14]
+				, 'Time elapsed: 3.14s.'],
+			['time-elapse2', ['duration' => 3.14]
+				, 'Time elapsed: 3.14s.'],
+			['time-elapse3', ['duration' => 3.14]
+				, 'Time elapsed: 3.14s.'],
 		];
 	}
 
@@ -79,9 +104,110 @@ class FluentTranslatorTest extends PHPUnit_Framework_TestCase
 
 
 
-	private function getBundle()
+	function testFunctionNumber1()
 	{
-		$bundle = new FluentTranslator("en-US");
+		$bundle = $this->getBundle();
+		$msg = $bundle->getMessage('time-elapse1');
+		list($msg, $err) = $bundle->formatPattern($msg->value, ['duration' => 1234.54]);
+		$this->assertSame('Time elapsed: 1234.54s.', $msg);
+		$this->assertSame([], $err);
+	}
+
+
+
+	function testFunctionNumber2()
+	{
+		$bundle = $this->getBundle();
+		$msg = $bundle->getMessage('time-elapse2');
+		list($msg, $err) = $bundle->formatPattern($msg->value, ['duration' => 1234.54]);
+		$this->assertSame('Time elapsed: 1234.54s.', $msg);
+		$this->assertSame([], $err);
+	}
+
+
+
+	function testFunctionNumber3()
+	{
+		$bundle = $this->getBundle();
+		$msg = $bundle->getMessage('time-elapse3');
+		list($msg, $err) = $bundle->formatPattern($msg->value, ['duration' => 1234.54]);
+		$this->assertSame('Time elapsed: 1234.54s.', $msg);
+		$this->assertSame([], $err);
+	}
+
+
+
+	function testFunctionNumber3CZ()
+	{
+		$bundle = $this->getBundle('cs-CZ');
+		$msg = $bundle->getMessage('time-elapse3');
+		list($msg, $err) = $bundle->formatPattern($msg->value, ['duration' => 1234.54]);
+		$this->assertSame('Time elapsed: 1234.54s.', $msg);
+		$this->assertSame([], $err);
+	}
+
+
+
+	function testFunctionDate0CZ()
+	{
+		$bundle = $this->getBundle('cs-CZ');
+		$msg = $bundle->getMessage('date0');
+		list($msg, $err) = $bundle->formatPattern($msg->value, ['date' => new \DateTime('2012-02-05 11:50:13')]);
+		$this->assertSame('Today is: 5. 2. 2012.', $msg);
+		$this->assertSame([], $err);
+	}
+
+
+
+	function testFunctionDate1CZ()
+	{
+		$bundle = $this->getBundle('cs-CZ');
+		$msg = $bundle->getMessage('date1');
+		list($msg, $err) = $bundle->formatPattern($msg->value, ['date' => new \DateTime('2012-02-05 11:50:13')]);
+		$this->assertSame('Today is: 5. 2. 2012.', $msg);
+		$this->assertSame([], $err);
+	}
+
+
+
+	function testFunctionDate1EN()
+	{
+		$bundle = $this->getBundle('en-GB');
+		$msg = $bundle->getMessage('date1');
+		list($msg, $err) = $bundle->formatPattern($msg->value, ['date' => new \DateTime('2012-02-05 11:50:13')]);
+		$this->assertSame('Today is: 05/02/2012.', $msg);
+		$this->assertSame([], $err);
+	}
+
+
+
+	function testFunctionDate2CZ()
+	{
+		$bundle = $this->getBundle('cs-CZ');
+		$msg = $bundle->getMessage('date2');
+		list($msg, $err) = $bundle->formatPattern($msg->value, ['date' => new \DateTime('2012-02-05 11:50:13')]);
+		$this->assertSame('Now is: 11:50.', $msg);
+		$this->assertSame([], $err);
+	}
+
+
+
+	function testFunctionFail()
+	{
+		$bundle = $this->getBundle();
+		$msg = $bundle->getMessage('time-elapse1');
+		list($msg, $err) = $bundle->formatPattern($msg->value, []);
+		$this->assertEquals([(object)[
+			'type' => 'FluentReferenceError',
+			'msg' => 'Unknown external: duration',
+		]], $err);
+	}
+
+
+
+	private function getBundle($locale = 'en-US')
+	{
+		$bundle = new FluentTranslator($locale);
 		$bundle->addResource(new FluentResource('
 -brand-name = Foo 3000
 welcome = Welcome, {$name}, to {-brand-name}!
@@ -95,6 +221,12 @@ shared-photos =
      [two] added two photos {-brand-name}
   }.
 
+date0 = Today is: {$date}.
+date1 = Today is: {DATETIME($date)}.
+date2 = Now is: {DATETIME($date, hour: "numeric", minute: "numeric")}.
+time-elapse1 = Time elapsed: {NUMBER($duration, minimumFractionDigits: 0)}s.
+time-elapse2 = Time elapsed: {NUMBER($duration)}s.
+time-elapse3 = Time elapsed: {NUMBER($duration, minimumFractionDigits: 2)}s.
 '));
 		return $bundle;
 	}
