@@ -113,7 +113,10 @@ class FluentParserTokensTest extends PHPUnit_Framework_TestCase
 
 
 
-	function testChoice3()
+	/**
+	 * time-elapse = Time elapsed: {NUMBER($duration, maximumFractionDigits: 0)}s.
+	 */
+	function testFormat()
 	{
 		$inst = new Choice([
 			'Male' => 'his stream',

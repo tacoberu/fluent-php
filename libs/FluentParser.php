@@ -242,6 +242,10 @@ class Expr
 					$key = ltrim($key, '$');
 					$map['{$' . $key . '}'] = $type->invoke(self::requireValue($key, $args), $args);
 					break;
+				// Argument se musí nejdříve naformátovat.
+				case $type instanceof Format:
+					$map['{$' . $key . '}'] = $type->invoke(self::requireValue($key, $args));
+					break;
 				default:
 					throw new LogicException("Unsupported type of argument: $key => '$type'.");
 			}
