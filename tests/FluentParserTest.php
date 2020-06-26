@@ -8,6 +8,7 @@ namespace Taco\FluentIntl;
 
 use PHPUnit_Framework_TestCase;
 use LogicException;
+use Taco\BNF\ParseException;
 
 
 class FluentParserTest extends PHPUnit_Framework_TestCase
@@ -96,6 +97,45 @@ shared-photos =
 
 
 
+
+	function testChoiceSimple()
+	{
+		$inst = new Choice([
+			'first' => 'premier',
+			'second' => 'deuxième',
+			'other' => 'tous les autres',
+		], 'other', []);
+		$this->assertEquals('deuxième', $inst->invoke('second', []));
+		$this->assertEquals('premier', $inst->invoke('first', []));
+		$this->assertEquals('tous les autres', $inst->invoke('other', []));
+		$this->assertEquals('tous les autres', $inst->invoke('noop', []));
+	}
+
+
+
+	function testChoiceWithArgs()
+	{
+		$inst = new Choice([
+			'first' => 'premier {$value}',
+			'second' => 'deuxième',
+			'other' => 'tous les autres',
+		], 'other', []);
+		$this->assertEquals('premier {$value}', $inst->invoke('first', []));
+	}
+
+
+
+	function testExpr()
+	{
+		$inst = new Expr('Welcome, {$name}, to {-brand-name}!', [
+			'$name' => null,
+			'-brand-name' => null,
+		]);
+		$this->assertEquals('Welcome, Nome, to Fluent!', $inst->invoke(['name' => 'Nome', '-brand-name' => 'Fluent']));
+	}
+
+
+
 	function testFail()
 	{
 		try {
@@ -103,14 +143,9 @@ shared-photos =
 welcome
 ');
 		}
-		catch (LogicException $e) {
-			$this->assertSame(0, $e->getCode());
-			$this->assertEquals("Unexpected token on line 2, column 1: expected token '9' or '1'
- 1 > "."
- 2 > welcome
-  ---^
- 3 > "."
-", $e->getMessage());
+		catch (ParseException $e) {
+			$this->assertSame(12, $e->getCode());
+			$this->assertEquals("Unexpected token on line 2, column 1: expected token 'assign' or 'Comment'", $e->getMessage());
 		}
 	}
 
@@ -131,10 +166,7 @@ welcome
 		return (object) [
 			'type' => "Message",
 			'id' => $id,
-			'value' => (object) [
-				'expression' => $expression,
-				'args' => $args,
-			],
+			'value' => new Expr($expression, $args),
 		];
 	}
 

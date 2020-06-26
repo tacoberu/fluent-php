@@ -131,7 +131,7 @@ class FluentSelectExpression implements Combinator
 
 
 
-	private static function reposition(Token $orig, int $offset)
+	private static function reposition(Token $orig, $offset)
 	{
 		if (empty($offset)) {
 			return $orig;

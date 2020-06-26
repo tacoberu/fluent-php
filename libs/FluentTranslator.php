@@ -41,21 +41,29 @@ class FluentTranslator
 	/**
 	 * @return [string, [string]] First is formated msg, second is list of errors.
 	 */
-	function formatPattern($msgvalue, array $args)
+	function formatPattern(Expr $msgvalue, array $args)
 	{
 		$error = [];
 
-		$arguments = self::getAllArguments($msgvalue);
-		$expression = $msgvalue->expression;
+		//~ $temp = [];
+		//~ foreach ($args as $key => $val) {
+			//~ $temp['$' . $key] = $val;
+		//~ }
+		//~ $args = $temp;
 
-		$globally = [];
+		// seženeme všechny do hloubky
+		$arguments = self::getAllArguments($msgvalue);
+		if (empty($arguments)) {
+			return [$msgvalue->expression, $error];
+		}
+
+		$map = $args;
 		foreach ($arguments as $id => $formater) {
 			switch (True) {
-				case $id[0] === '-':
 				case $id[0] !== '$':
 					if ($msg = $this->getMessage($id)) {
-						list($val, $err) = $this->formatPattern($msg->value, []);
-						$globally['{' . $id . '}'] = $val;
+						list($val, $err) = $this->formatPattern($msg->value, $args);
+						$map[$id] = $val;
 						$error = array_merge($error, $err);
 					}
 					else {
@@ -64,40 +72,12 @@ class FluentTranslator
 					break;
 			}
 		}
-
-		$map = $globally;
-		foreach ($arguments as $id => $formater) {
-			switch (True) {
-				case $id[0] === '$' && $formater:
-					$map["{{$id}}"] = $formater->invoke($args[substr($id, 1)], $args);
-					break;
-			}
+		try {
+			return [$msgvalue->invoke($map), $error];
 		}
-		$expression = strtr($expression, $map);
-
-		$map = $globally;
-		foreach ($arguments as $id => $formater) {
-			switch (True) {
-				case $id[0] === '-':
-				case $id[0] === '$' && $formater:
-					break;
-				case $id[0] === '$' && empty($formater):
-					if ( ! array_key_exists(substr($id, 1), $args)) {
-						$error[] = self::formatFluentReferenceError(substr($id, 1));
-					}
-					else {
-						$map["{{$id}}"] = $args[substr($id, 1)];
-					}
-					break;
-				case $id[0] !== '$':
-					break;
-			}
+		catch (InvokeException $e) {
+			return [$msgvalue->expression, array_merge($error, [self::makeError('FluentReference', 'Unknown external: ' . implode(', ', $e->getMissingKeys()))])];
 		}
-
-		return [
-			strtr($expression, $map),
-			$error
-		];
 	}
 
 

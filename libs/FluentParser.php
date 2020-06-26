@@ -40,9 +40,9 @@ class FluentParser
 		$comment = new Pattern('Comment', ['~^#.*$~m'], False);
 		$identifier = new Pattern('Identifier', ['~' . self::$symbolPattern . '~']);
 		$textElement = new Pattern('TextElement', ['~[^\{\}]+~s']);
-		$variableReference = new Sequence('VariableReference', [
+		$pattern = new Sequence(Null, [
 			new Pattern(Null, ['~\{[ \t]*~'], False),
-			new OneOf(Null, [
+			new OneOf('Pattern', [
 				new Pattern('VariableReference', ['~' . self::$symbolPattern . '~']),
 				new Text('StringLiteral'),
 			]),
@@ -50,7 +50,7 @@ class FluentParser
 		]);
 		$pattern = new Variants('Pattern', [
 			$nl,
-			$variableReference,
+			$pattern,
 			new FluentSelectExpression('SelectExpression'),
 			$textElement,
 		]);
@@ -97,8 +97,7 @@ class FluentParser
 				return (object) [
 					"type" => "Message",
 					"id" => $id,
-					"value" => (object) ['expression' => $value->expression, 'args' => $value->args],
-					//~ "value" => new Expr($value->expression, $value->args),
+					"value" => new Expr($value->expression, $value->args),
 				];
 			case 'Identifier':
 				return (object) [
@@ -207,12 +206,19 @@ class FluentParser
 
 class Expr
 {
-	private $expr, $args;
+	public $expression, $args;
 
 	function __construct($expr, array $args)
 	{
-		$this->expr = $expr;
+		$this->expression = $expr;
 		$this->args = $args;
+	}
+
+
+
+	function getArguments()
+	{
+		return $this->args;
 	}
 
 
@@ -223,32 +229,63 @@ class Expr
 		foreach ($this->args as $key => $type) {
 			switch (True) {
 				// Argument přijímá scalar.
+				case $type === Null && $key[0] !== '$':
+					$map['{' . $key . '}'] = self::requireValue($key, $args);
+					$map['{$' . $key . '}'] = self::requireValue($key, $args); //@TODO
+					break;
 				case $type === Null:
-					// assert value exists
-					$map['{$' . $key . '}'] = $args[$key];
+					$key = ltrim($key, '$');
+					$map['{$' . $key . '}'] = self::requireValue($key, $args);
 					break;
-				// Argument se musí nejdříve naformátovat.
+				// Výběr z monžostí.
 				case $type instanceof Choice:
-					// assert value exists
-					$map['{$' . $key . '}'] = $type->invoke($args[$key], $args);
+					$key = ltrim($key, '$');
+					$map['{$' . $key . '}'] = $type->invoke(self::requireValue($key, $args), $args);
 					break;
-				case $type instanceof Format:
-					// assert value exists
-					$map['{$' . $key . '}'] = $type->invoke($args[$key]);
-					break;
-				// @TODO Expr
 				default:
 					throw new LogicException("Unsupported type of argument: $key => '$type'.");
 			}
 		}
-		return strtr($this->expr, $map);
+		return strtr($this->expression, $map);
 	}
 
 
 
 	function __toString()
 	{
-		return "expr({$this->expr})";
+		return "expr({$this->expression})";
+	}
+
+
+
+	private static function requireValue($key, array $args)
+	{
+		if ( ! array_key_exists($key, $args)) {
+			throw new InvokeException([$key]);
+		}
+		return $args[$key];
+	}
+}
+
+
+
+class InvokeException extends LogicException
+{
+
+	private $keys;
+
+	function __construct(array $keys, $code = 0)
+	{
+		$this->keys = $keys;
+		$keys = implode(', ', $keys);
+		parent::__construct("Missing reqired keys: $keys.", $code);
+	}
+
+
+
+	function getMissingKeys()
+	{
+		return $this->keys;
 	}
 }
 
@@ -264,7 +301,12 @@ class Choice
 		$opts = [];
 		$args = [];
 		foreach ($src as $x) {
-			$opts[$x->id] = $x->expression;
+			if (count($x->args)) {
+				$opts[$x->id] = new Expr($x->expression, $x->args);
+			}
+			else {
+				$opts[$x->id] = $x->expression;
+			}
 			if (isset($x->default)) {
 				$default = $x->id;
 			}
@@ -286,6 +328,13 @@ class Choice
 
 
 
+	function getArguments()
+	{
+		return $this->args;
+	}
+
+
+
 	function getAllArguments()
 	{
 		$res = [];
@@ -294,8 +343,7 @@ class Choice
 				$res[$k] = $v;
 			}
 			else {
-				dump($v);
-				die('=====[' . __line__ . '] ' . __file__);
+				throw new LogicException("Unexpected value of argument.");
 			}
 		}
 		return $res;
@@ -339,59 +387,4 @@ class Choice
 		}
 		return 'choice(' . implode(', ', $xs) . ')';
 	}
-}
-
-
-
-class Format
-{
-
-	private $func, $args;
-
-	function __construct($func, array $args)
-	{
-		$this->func = $func;
-		$this->args = $args;
-	}
-
-
-
-	/**
-	 * @TODO Zobecnit a přidat další funkce.
-	 */
-	function invoke($val)
-	{
-		switch ($this->func) {
-			case 'NUMBER':
-				return self::formatNumber($val, $this->args);
-			default:
-				throw new LogicException("Unsupported function {$this->func}.");
-		}
-	}
-
-
-
-	function __toString()
-	{
-		$xs = [];
-		foreach ($this->args as $k => $v) {
-			$xs[] = "$k: $v";
-		}
-		return 'func(' . $this->func . ' ' . implode(', ', $xs) . ')';
-	}
-
-
-
-	/**
-	 * @TODO Doplnit další volby.
-	 */
-	private static function formatNumber($val, array $args)
-	{
-		$format = '%F';
-		if (array_key_exists('minimumFractionDigits', $args)) {
-			$format = '%01.' . $args['minimumFractionDigits'] . 'F';
-		}
-		return sprintf($format, $val);
-	}
-
 }

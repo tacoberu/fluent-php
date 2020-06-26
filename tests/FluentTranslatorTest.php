@@ -69,7 +69,8 @@ class FluentTranslatorTest extends PHPUnit_Framework_TestCase
 
 		$msg = $bundle->getMessage('welcome');
 		list($msg, $err) = $bundle->formatPattern($msg->value, []);
-		$this->assertSame('Welcome, {$name}, to Foo 3000!', $msg);
+		//~ $this->assertSame('Welcome, {$name}, to Foo 3000!', $msg);
+		$this->assertSame('Welcome, {$name}, to {-brand-name}!', $msg);
 		$this->assertEquals([(object) [
 			'type' => 'FluentReferenceError',
 			'msg' => 'Unknown external: name',

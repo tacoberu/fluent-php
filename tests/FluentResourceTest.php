@@ -7,7 +7,7 @@
 namespace Taco\FluentIntl;
 
 use PHPUnit_Framework_TestCase;
-use LogicException;
+use Taco\BNF\ParseException;
 
 
 class FluentResourceTest extends PHPUnit_Framework_TestCase
@@ -33,7 +33,7 @@ greet-by-name = Hello, { $name }!
 
 	function testFail()
 	{
-		$this->setExpectedException(LogicException::class, '');
+		$this->setExpectedException(ParseException::class, '');
 		$res = new FluentResource('
 welcome
 ');
@@ -48,10 +48,7 @@ welcome
 		return (object) [
 			'type' => "Message",
 			'id' => $id,
-			'value' => (object) [
-				'expression' => $expression,
-				'args' => $args,
-			],
+			'value' => new Expr($expression, $args),
 		];
 	}
 

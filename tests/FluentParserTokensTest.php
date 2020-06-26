@@ -14,6 +14,18 @@ class FluentParserTokensTest extends PHPUnit_Framework_TestCase
 {
 
 
+	function testExprArguments()
+	{
+		$inst = new Expr('Added {$photoCount} new photos', [
+			'photoCount' => Null,
+		]);
+		$this->assertEquals([
+			'photoCount' => null,
+		], $inst->getArguments());
+	}
+
+
+
 	/**
 	 * @dataProvider dataExpr
 	 */
@@ -65,22 +77,12 @@ class FluentParserTokensTest extends PHPUnit_Framework_TestCase
 				'expr({$userName} {$photoCount} to {$userGender}.)',
 				'Martin added 13 new photos to his stream.'
 				],
-			// Your DPI ratio is { NUMBER($ratio, minimumFractionDigits: 2) }
-			[new Expr('Your DPI ratio is {$ratio}', [
-					'ratio' => new Format('NUMBER', [
-						'minimumFractionDigits' => 2,
-					]),
-				]),
-				['ratio' => 4321],
-				'expr(Your DPI ratio is {$ratio})',
-				'Your DPI ratio is 4321.00'
-				],
 		];
 	}
 
 
 
-	function testChoice()
+	function testChoice1()
 	{
 		$inst = new Choice([
 			'male' => 'his stream',
@@ -90,21 +92,23 @@ class FluentParserTokensTest extends PHPUnit_Framework_TestCase
 		$this->assertEquals('choice(male, female, *other)', (string)$inst);
 		$this->assertEquals('his stream', $inst->invoke('male', ['photoCount' => 4]));
 		$this->assertEquals('their stream', $inst->invoke('?', ['photoCount' => 4]));
+		$this->assertEquals([], $inst->getArguments());
 	}
 
 
 
-	/*
-
-	time-elapse = Time elapsed: {NUMBER($duration, maximumFractionDigits: 0)}s.
-	 */
-	function testFormat()
+	function testChoice2()
 	{
-		$inst = new Format('NUMBER', [
-			'minimumFractionDigits' => 3,
-		]);
-		$this->assertSame('func(NUMBER minimumFractionDigits: 3)', (string)$inst);
-		$this->assertSame('12345.600', $inst->invoke(12345.6));
+		$inst = new Choice([
+			'male' => 'his stream',
+			'other' => new Expr('added {$photoCount} new photos', [
+				'photoCount' => Null,
+			]),
+		], 'other');
+		$this->assertEquals('choice(male, *other)', (string)$inst);
+		$this->assertEquals('his stream', $inst->invoke('male', ['photoCount' => 4]));
+		$this->assertEquals('added 4 new photos', $inst->invoke('?', ['photoCount' => 4]));
+		$this->assertEquals([], $inst->getArguments());
 	}
 
 
