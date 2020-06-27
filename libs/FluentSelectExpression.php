@@ -63,7 +63,7 @@ class FluentSelectExpression implements Combinator
 
 		// Zpracovat hlavičku obsahující výraz
 		$sep = new Whitechars(Null, False);
-		$nl = new Pattern(Null, ['~\n+~'], False);
+		$nl = new Pattern(Null, ['~[\r\n]+~',], False);
 		$identifier = (new Ref('Identifier'))->requireFrom($bank);
 		$beginPart = new Sequence(Null, [
 			new Pattern('select-start', ['~\{\s*~'], False),
