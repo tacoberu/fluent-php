@@ -57,10 +57,20 @@ $translator->addResource(new FluentResource('
 -brand-name = Foo 3000
 welcome = Welcome, {$name}, to {-brand-name}!
 greet-by-name = Hello, { $name }!
+emails =
+    { $unreadEmails ->
+        [1] You have one unread email.
+       *[other] You have { $unreadEmails } unread emails.
+    }
 '));
 
 $msg = $translator->getMessage("welcome");
 dump($translator->formatPattern($msg->value, ["name" => "Anna"]));
+// Welcome, Anna, to Foo 3000!
+
+$msg = $translator->getMessage("emails");
+dump($translator->formatPattern($msg->value, ["unreadEmails" => 5]));
+// You have 5 unread emails.
 
 ```
 
@@ -68,4 +78,4 @@ dump($translator->formatPattern($msg->value, ["name" => "Anna"]));
 Status
 ------
 
-Only part of the specification implemented.Implementována jen část specifikace.
+Only part of the specification implemented.
