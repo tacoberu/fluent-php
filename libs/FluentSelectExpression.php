@@ -58,7 +58,7 @@ class FluentSelectExpression implements Combinator
 
 	private function subscan($sub, array $bank)
 	{
-		static $valuePattern = '[a-z0-9][a-zA-Z0-9\-]*';
+		static $valuePattern = '[a-zA-Z0-9\-]*';
 		static $skipIndent = [['{', '}']];
 
 		// Zpracovat hlavičku obsahující výraz

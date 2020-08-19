@@ -112,4 +112,20 @@ class FluentParserTokensTest extends PHPUnit_Framework_TestCase
 	}
 
 
+
+	function testChoice3()
+	{
+		$inst = new Choice([
+			'Male' => 'his stream',
+			'other' => new Expr('added {$photoCount} new photos', [
+				'photoCount' => Null,
+			]),
+		], 'other');
+		$this->assertEquals('choice(Male, *other)', (string)$inst);
+		$this->assertEquals('his stream', $inst->invoke('Male', ['photoCount' => 4]));
+		$this->assertEquals('added 4 new photos', $inst->invoke('?', ['photoCount' => 4]));
+		$this->assertEquals([], $inst->getArguments());
+	}
+
+
 }
