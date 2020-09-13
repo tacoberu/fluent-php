@@ -97,41 +97,59 @@ shared-photos =
 
 
 
+	function testFunctionDateTime()
+	{
+		$res = (new FluentParser)->parse('today-is = Today is { DATETIME($date, weekday: 3.14) }');
+		$this->assertCount(1, $res);
+		$format1 = new Format('DATETIME', [
+				'$date',
+			], [
+				'weekday' => 3.14,
+			]);
+		$this->assertEquals(self::makeMessage("today-is", 'Today is {$DATETIME_date_weekday:4beed3b9c4a886067de0e3a094246f78}', [
+			Format::formatPlacement($format1) => $format1,
+		]), $res[0]);
+	}
+
+
 
 	function testChoiceSimple()
 	{
+		$translators = ['NUMBER' => new NumberIntl('cs-CZ')];
 		$inst = new Choice([
 			'first' => 'premier',
 			'second' => 'deuxième',
 			'other' => 'tous les autres',
 		], 'other', []);
-		$this->assertEquals('deuxième', $inst->invoke('second', []));
-		$this->assertEquals('premier', $inst->invoke('first', []));
-		$this->assertEquals('tous les autres', $inst->invoke('other', []));
-		$this->assertEquals('tous les autres', $inst->invoke('noop', []));
+		$this->assertEquals('deuxième', $inst->invoke($translators, 'second', []));
+		$this->assertEquals('premier', $inst->invoke($translators, 'first', []));
+		$this->assertEquals('tous les autres', $inst->invoke($translators, 'other', []));
+		$this->assertEquals('tous les autres', $inst->invoke($translators, 'noop', []));
 	}
 
 
 
 	function testChoiceWithArgs()
 	{
+		$translators = ['NUMBER' => new NumberIntl('cs-CZ')];
 		$inst = new Choice([
 			'first' => 'premier {$value}',
 			'second' => 'deuxième',
 			'other' => 'tous les autres',
 		], 'other', []);
-		$this->assertEquals('premier {$value}', $inst->invoke('first', []));
+		$this->assertEquals('premier {$value}', $inst->invoke($translators, 'first', []));
 	}
 
 
 
 	function testExpr()
 	{
+		$translators = ['NUMBER' => new NumberIntl('cs-CZ')];
 		$inst = new Expr('Welcome, {$name}, to {-brand-name}!', [
 			'$name' => null,
 			'-brand-name' => null,
 		]);
-		$this->assertEquals('Welcome, Nome, to Fluent!', $inst->invoke(['name' => 'Nome', '-brand-name' => 'Fluent']));
+		$this->assertEquals('Welcome, Nome, to Fluent!', $inst->invoke($translators, ['name' => 'Nome', '-brand-name' => 'Fluent']));
 	}
 
 

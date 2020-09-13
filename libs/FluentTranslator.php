@@ -10,11 +10,16 @@ namespace Taco\FluentIntl;
 class FluentTranslator
 {
 	private $lang;
+	private $formaters = [];
 	private $items = [];
 
 	function __construct($lang)
 	{
 		$this->lang = $lang;
+		$this->formaters = [
+			'DATETIME' => DateTimeIntl::createFromFile($lang, __dir__ . '/Intl'),
+			'NUMBER' => new NumberIntl($lang),
+		];
 	}
 
 
@@ -45,12 +50,6 @@ class FluentTranslator
 	{
 		$error = [];
 
-		//~ $temp = [];
-		//~ foreach ($args as $key => $val) {
-			//~ $temp['$' . $key] = $val;
-		//~ }
-		//~ $args = $temp;
-
 		// seženeme všechny do hloubky
 		$arguments = self::getAllArguments($msgvalue);
 		if (empty($arguments)) {
@@ -73,7 +72,7 @@ class FluentTranslator
 			}
 		}
 		try {
-			return [$msgvalue->invoke($map), $error];
+			return [$msgvalue->invoke($this->formaters, $map), $error];
 		}
 		catch (InvokeException $e) {
 			return [$msgvalue->expression, array_merge($error, [self::makeError('FluentReference', 'Unknown external: ' . implode(', ', $e->getMissingKeys()))])];
@@ -88,6 +87,14 @@ class FluentTranslator
 		foreach ($msg->args as $k => $v) {
 			if ($v instanceof Choice) {
 				$res = array_merge($res, $v->getAllArguments());
+			}
+			if ($v instanceof Format) {
+				$vals = [];
+				foreach ($v->getArguments() as $k2) {
+					$vals[$k2] = False;
+				}
+				$res = array_merge($res, $vals);
+				continue;
 			}
 			$res[$k] = $v;
 		}

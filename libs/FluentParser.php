@@ -15,6 +15,7 @@ use Taco\BNF\Combinators\OneOf;
 use Taco\BNF\Combinators\Sequence;
 use Taco\BNF\Combinators\Variants;
 use Taco\BNF\Combinators\Indent;
+use Taco\BNF\Combinators\Numeric;
 use Taco\BNF\Combinators\Text;
 use Taco\FluentIntl\BNF\FluentSelectExpression;
 use LogicException;
@@ -40,11 +41,30 @@ class FluentParser
 		$comment = new Pattern('Comment', ['~^#.*$~m'], False);
 		$identifier = new Pattern('Identifier', ['~' . self::$symbolPattern . '~']);
 		$textElement = new Pattern('TextElement', ['~[^\{\}]+~s']);
-		$pattern = new Sequence(Null, [
+		$pattern = new Sequence('VariableReference', [
 			new Pattern(Null, ['~\{[ \t]*~'], False),
 			new OneOf('Pattern', [
 				new Pattern('VariableReference', ['~' . self::$symbolPattern . '~']),
 				new Text('StringLiteral'),
+				new Sequence('FunctionReference', [
+					new Pattern('Id', ['~[A-Z]+~']),
+					new Match(Null, ['('], False),
+					new Variants('Arguments', [
+						new OneOf(Null, [
+							new Sequence('NamedArgument', [
+								new Pattern('Name', ['~[a-z][a-zA-Z]*~']),
+								new Pattern(Null, ['~\s*\:\s*~'], False),
+								new OneOf('Value', [
+									new Numeric('NumericLiteral'),
+									new Text('StringLiteral'),
+								]),
+							]),
+							$identifier,
+						]),
+						new Pattern(Null, ['~\s*,\s*~'], False),
+					]),
+					new Match(Null, [')'], False),
+				]),
 			]),
 			new Pattern(Null, ['~[ \t]*\}~'], False),
 		]);
@@ -129,10 +149,18 @@ class FluentParser
 					"type" => "Comment",
 					"content" => $node->content,
 				];
+			case 'Name':
 			case 'TextElement':
 				return $node->content;
 			case 'StringLiteral':
 				return substr($node->content, 1, -1);
+			case 'NumericLiteral':
+				if (strpos($node->content, '.') !== False) {
+					return (float) $node->content;
+				}
+				else {
+					return (int) $node->content;
+				}
 			case 'VariableReference':
 				return (object) [
 					'type' => 'VariableReference',
@@ -160,6 +188,25 @@ class FluentParser
 					$el->default = True;
 				}
 				return $el;
+
+			case 'FunctionReference':
+				$args = [];
+				foreach ($node->content[1]->content as $arg) {
+					$args[] = self::castAny($arg);
+				}
+				$fn = $node->content[0]->content;
+				return (object) [
+					'type' => 'FunctionReference',
+					'name' => $fn,
+					'arguments' => $args,
+				];
+
+			case 'NamedArgument':
+				return (object) [
+					'type' => 'NamedArgument',
+					'name' => self::castAny($node->content[0]),
+					'value' => self::castAny($node->content[1]),
+				];
 
 			case 'term-reference':
 				return (object) [
@@ -192,6 +239,12 @@ class FluentParser
 						$value[] = "{{$x->selector}}";
 						$args[$x->selector] = Choice::createFrom($x->variants);
 						break;
+					case 'FunctionReference':
+						$inst = new Format($x->name, [substr(reset($x->arguments)->name, 0)], self::formatArguments(array_splice($x->arguments, 1)));
+						$symbol = Format::formatPlacement($inst);
+						$args[$symbol] = $inst;
+						$value[] = "{{$symbol}}";
+						break;
 					default:
 						dump($x);
 						throw new LogicException("Unsupported node type: {$x->type}.");
@@ -200,6 +253,18 @@ class FluentParser
 		}
 		return [implode('', $value), $args];
 	}
+
+
+
+	private static function formatArguments(array $xs)
+	{
+		$ret = [];
+		foreach ($xs as $x) {
+			$ret[$x->name] = $x->value;
+		}
+		return $ret;
+	}
+
 }
 
 
@@ -223,24 +288,27 @@ class Expr
 
 
 
-	function invoke(array $args)
+	function invoke($translator, array $args)
 	{
 		$map = [];
 		foreach ($this->args as $key => $type) {
 			switch (True) {
 				// Argument přijímá scalar.
 				case $type === Null && $key[0] !== '$':
-					$map['{' . $key . '}'] = self::requireValue($key, $args);
-					$map['{$' . $key . '}'] = self::requireValue($key, $args); //@TODO
+					$map['{$' . $key . '}'] = $map['{' . $key . '}'] = $this->formatValue($translator, self::requireValue($key, $args), $key);
 					break;
 				case $type === Null:
 					$key = ltrim($key, '$');
-					$map['{$' . $key . '}'] = self::requireValue($key, $args);
+					$map['{$' . $key . '}'] = $this->formatValue($translator, self::requireValue($key, $args), $key);
 					break;
 				// Výběr z monžostí.
 				case $type instanceof Choice:
 					$key = ltrim($key, '$');
-					$map['{$' . $key . '}'] = $type->invoke(self::requireValue($key, $args), $args);
+					$map['{$' . $key . '}'] = $type->invoke($translator, self::requireValue($key, $args), $args);
+					break;
+				// Argument se musí nejdříve naformátovat.
+				case $type instanceof Format:
+					$map['{' . $key . '}'] = $type->invoke($translator, self::requireValue(substr($type->getArguments()[0], 1), $args));
 					break;
 				default:
 					throw new LogicException("Unsupported type of argument: $key => '$type'.");
@@ -258,12 +326,41 @@ class Expr
 
 
 
+	private function formatValue(array $translators, $val, $key)
+	{
+		if (is_string($val)) {
+			return $val;
+		}
+		if (is_numeric($val)) {
+			return self::requireTranslator('NUMBER', $translators)->format($val, []);
+		}
+		if ($val instanceof \DateTime) {
+			return self::requireTranslator('DATETIME', $translators)->format($val, []);
+		}
+		if (is_scalar($val)) {
+			return (string) $val;
+		}
+		throw new LogicException("Unsupported type of argument: $key.");
+	}
+
+
+
 	private static function requireValue($key, array $args)
 	{
 		if ( ! array_key_exists($key, $args)) {
 			throw new InvokeException([$key]);
 		}
 		return $args[$key];
+	}
+
+
+
+	private static function requireTranslator($key, array $translators)
+	{
+		if ( ! array_key_exists($key, $translators)) {
+			throw new LogicException("Function of: $key is not found.");
+		}
+		return $translators[$key];
 	}
 }
 
@@ -351,7 +448,7 @@ class Choice
 
 
 
-	function invoke($key, array $args)
+	function invoke($translator, $key, array $args)
 	{
 		if (array_key_exists($key, $this->opts)) {
 			$msg = $this->opts[$key];
@@ -368,7 +465,7 @@ class Choice
 				return $msg;
 			case $msg instanceof Expr:
 				// assert value exists
-				return $msg->invoke($args);
+				return $msg->invoke($translator, $args);
 			default:
 				throw new LogicException("Unsupported type of argument: $val => '$msg'.");
 		}
@@ -387,4 +484,76 @@ class Choice
 		}
 		return 'choice(' . implode(', ', $xs) . ')';
 	}
+}
+
+
+
+class Format
+{
+
+	private $func, $args, $opts;
+
+
+	static function formatPlacement(self $inst)
+	{
+		$xs = [$inst->func];
+		foreach ($inst->args as $x) {
+			$xs[] = trim($x, '$');
+		}
+		foreach ($inst->opts as $k => $v) {
+			$xs[] = "{$k}:" . md5($v);
+		}
+		return '$' . implode('_', $xs);
+	}
+
+
+
+	function __construct($func, array $args, array $opts = [])
+	{
+		if (empty($args)) {
+			throw new LogicException("Empty arguments.");
+		}
+		$this->func = $func;
+		$this->args = $args;
+		$this->opts = $opts;
+	}
+
+
+
+	function getArguments()
+	{
+		return $this->args;
+	}
+
+
+
+	/**
+	 * @TODO Zobecnit a přidat další funkce.
+	 */
+	function invoke(array $formaters, $val)
+	{
+		return self::requireTranslator($this->func, $formaters)->format($val, $this->opts);
+	}
+
+
+
+	function __toString()
+	{
+		$xs = [];
+		foreach ($this->opts as $k => $v) {
+			$xs[] = "$k: $v";
+		}
+		return 'func(' . $this->func . ' ' . implode(', ', $xs) . ')';
+	}
+
+
+
+	private static function requireTranslator($key, array $translators)
+	{
+		if ( ! array_key_exists($key, $translators)) {
+			throw new LogicException("Function of: $key is not found.");
+		}
+		return $translators[$key];
+	}
+
 }

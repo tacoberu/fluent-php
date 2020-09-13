@@ -31,14 +31,21 @@ class FluentParserTokensTest extends PHPUnit_Framework_TestCase
 	 */
 	function testExpr($token, array $args, $str, $msg)
 	{
+		$translators = ['NUMBER' => new NumberIntl('cs-CZ')];
 		$this->assertEquals($str, (string)$token);
-		$this->assertEquals($msg, $token->invoke($args));
+		$this->assertEquals($msg, $token->invoke($translators, $args));
 	}
 
 
 
 	function dataExpr()
 	{
+		$format1 = new Format('NUMBER', ['$ratio'], [
+			'minimumFractionDigits' => 2,
+		]);
+		$format2 = new Format('NUMBER', ['$ratio'], [
+			'minimumFractionDigits' => 3,
+		]);
 		return [
 			[new Expr('Added {$photoCount} new photos', [
 					'photoCount' => Null,
@@ -77,6 +84,35 @@ class FluentParserTokensTest extends PHPUnit_Framework_TestCase
 				'expr({$userName} {$photoCount} to {$userGender}.)',
 				'Martin added 13 new photos to his stream.'
 				],
+			// Your DPI ratio is { NUMBER($ratio, minimumFractionDigits: 2) }
+			[new Expr('Your DPI ratio is {$ratio}', [
+					'$ratio' => $format1,
+				]),
+				['ratio' => 4321],
+				'expr(Your DPI ratio is {$ratio})',
+				'Your DPI ratio is 4321.00'
+				],
+			[new Expr('Your DPI ratio is {$ratio}', [
+					'$ratio' => $format2,
+				]),
+				['ratio' => 4321],
+				'expr(Your DPI ratio is {$ratio})',
+				'Your DPI ratio is 4321.000'
+				],
+			[new Expr('Your DPI ratio is {$ratio}', [
+					'$ratio' => $format2,
+				]),
+				['ratio' => 3.14],
+				'expr(Your DPI ratio is {$ratio})',
+				'Your DPI ratio is 3.140'
+				],
+			[new Expr('Your DPI ratio is {$ratio}', [
+					'$ratio' => $format1,
+				]),
+				['ratio' => 3.14],
+				'expr(Your DPI ratio is {$ratio})',
+				'Your DPI ratio is 3.14'
+				],
 		];
 	}
 
@@ -84,14 +120,15 @@ class FluentParserTokensTest extends PHPUnit_Framework_TestCase
 
 	function testChoice1()
 	{
+		$translators = ['NUMBER' => new NumberIntl('cs-CZ')];
 		$inst = new Choice([
 			'male' => 'his stream',
 			'female' => 'her stream',
 			'other' => 'their stream',
 		], 'other');
 		$this->assertEquals('choice(male, female, *other)', (string)$inst);
-		$this->assertEquals('his stream', $inst->invoke('male', ['photoCount' => 4]));
-		$this->assertEquals('their stream', $inst->invoke('?', ['photoCount' => 4]));
+		$this->assertEquals('his stream', $inst->invoke($translators, 'male', ['photoCount' => 4]));
+		$this->assertEquals('their stream', $inst->invoke($translators, '?', ['photoCount' => 4]));
 		$this->assertEquals([], $inst->getArguments());
 	}
 
@@ -99,6 +136,7 @@ class FluentParserTokensTest extends PHPUnit_Framework_TestCase
 
 	function testChoice2()
 	{
+		$translators = ['NUMBER' => new NumberIntl('cs-CZ')];
 		$inst = new Choice([
 			'male' => 'his stream',
 			'other' => new Expr('added {$photoCount} new photos', [
@@ -106,8 +144,8 @@ class FluentParserTokensTest extends PHPUnit_Framework_TestCase
 			]),
 		], 'other');
 		$this->assertEquals('choice(male, *other)', (string)$inst);
-		$this->assertEquals('his stream', $inst->invoke('male', ['photoCount' => 4]));
-		$this->assertEquals('added 4 new photos', $inst->invoke('?', ['photoCount' => 4]));
+		$this->assertEquals('his stream', $inst->invoke($translators, 'male', ['photoCount' => 4]));
+		$this->assertEquals('added 4 new photos', $inst->invoke($translators, '?', ['photoCount' => 4]));
 		$this->assertEquals([], $inst->getArguments());
 	}
 
@@ -115,6 +153,7 @@ class FluentParserTokensTest extends PHPUnit_Framework_TestCase
 
 	function testChoice3()
 	{
+		$translators = ['NUMBER' => new NumberIntl('cs-CZ')];
 		$inst = new Choice([
 			'Male' => 'his stream',
 			'other' => new Expr('added {$photoCount} new photos', [
@@ -122,9 +161,25 @@ class FluentParserTokensTest extends PHPUnit_Framework_TestCase
 			]),
 		], 'other');
 		$this->assertEquals('choice(Male, *other)', (string)$inst);
-		$this->assertEquals('his stream', $inst->invoke('Male', ['photoCount' => 4]));
-		$this->assertEquals('added 4 new photos', $inst->invoke('?', ['photoCount' => 4]));
+		$this->assertEquals('his stream', $inst->invoke($translators, 'Male', ['photoCount' => 4]));
+		$this->assertEquals('added 4 new photos', $inst->invoke($translators, '?', ['photoCount' => 4]));
 		$this->assertEquals([], $inst->getArguments());
+	}
+
+
+
+	/**
+	 * time-elapse = Time elapsed: {NUMBER($duration, maximumFractionDigits: 0)}s.
+	 */
+	function testFormat()
+	{
+		$translators = ['NUMBER' => new NumberIntl('cs-CZ')];
+		$inst = new Format('NUMBER', ['val'], [
+			'minimumFractionDigits' => 3,
+		]);
+		$this->assertSame('func(NUMBER minimumFractionDigits: 3)', (string)$inst);
+		$this->assertSame('12345.600', $inst->invoke($translators, 12345.6));
+		$this->assertEquals(['val'], $inst->getArguments());
 	}
 
 

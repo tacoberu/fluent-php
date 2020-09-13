@@ -1,0 +1,35 @@
+<?php
+return [
+	'names' => [
+		'monthName' => ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'],
+		'monthShortName' => ['Jan', 'Feb', 'Mar', 'Apr', 'May', 'Jun', 'Jul', 'Aug', 'Sep', 'Oct', 'Nov', 'Dec'],
+		'dayName' => ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'],
+		'dayMiddleName' => ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+		'dayShortName' => ['Su', 'Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa'],
+	],
+	'formats' => [
+		'default' => '{$day}/{$month}/{$year}',
+		'yyyy-mmm-weekday-d' => '{$dayName}, {$day} {$monthName} {$year}', // "Thursday, February 2, 2012"
+		'yyyy-m-d' => '{$day}/{$month}/{$year}',
+		'yyyy-m' => '{$month}/{$year}',
+		'yy-m-d' => '{$day}/{$month/{$year}',
+		'yy-m' => '{$month}/{$year}',
+		'm-d' => '{$day}/{$month}',
+		'mmm-d' => '{$day}. {$monthName}',
+		'yyyy' => '{$year}',
+		'yy' => '{$year}',
+		'd' => '{$day}',
+		'mmm' => '{$monthName}',
+		'mm' => '{$monthShortName}',
+		'm' => '{$month}',
+		'h12' => '{$hour}',
+		'h24' => '{$hour}',
+		'minute' => '{$minute}',
+		'sec' => '{$second}',
+		'h24-minute' => '{$hour}:{$minute}',
+		'h12-minute' => '{$hour}:{$minute}',
+		'minute-sec' => '{$minute}:{$second}',
+		'h24-minute-sec' => '{$hour}:{$minute}:{$second}',
+		'h12-minute-sec' => '{$hour}:{$minute}:{$second}',
+	],
+];
