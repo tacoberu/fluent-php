@@ -37,7 +37,7 @@ class DateTimeIntl
 
 	private $locale;
 	private $formats;
-    private $names;
+	private $names;
 
 
 	static function createFromFile($locale, $path)
