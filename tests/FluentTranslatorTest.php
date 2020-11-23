@@ -205,9 +205,34 @@ class FluentTranslatorTest extends PHPUnit_Framework_TestCase
 
 
 
-	private function getBundle($locale = 'en-US')
+	function testOwnFunction()
 	{
-		$bundle = new FluentTranslator($locale);
+		$functions = new FluentFunctionStaticResource('en-US');
+		$functions['MYFUNC'] = DateTimeIntl::createFromFile('en-US', __dir__ . '/../libs/Intl');
+		$bundle = $this->getBundle('en-US', $functions);
+		$msg = $bundle->getMessage("own-function");
+		$this->assertEquals('own-function', $msg->id);
+		list($msg, $err) = $bundle->formatPattern($msg->value, ['date' => new \DateTime('2012-02-05 11:50:13')]);
+		$this->assertSame('Today is: 2/5/2012.', $msg);
+		$this->assertSame([], $err);
+	}
+
+
+
+	function testOwnFunctionFail()
+	{
+		$this->setExpectedException(LogicException::class, 'Function of: MYFUNC is not found.');
+		$bundle = $this->getBundle();
+		$msg = $bundle->getMessage("own-function");
+		$this->assertEquals('own-function', $msg->id);
+		list($msg, $err) = $bundle->formatPattern($msg->value, ['date' => new \DateTime('2012-02-05 11:50:13')]);
+	}
+
+
+
+	private function getBundle($locale = 'en-US', $functions = Null)
+	{
+		$bundle = new FluentTranslator($locale, $functions);
 		$bundle->addResource(new FluentResource('
 -brand-name = Foo 3000
 welcome = Welcome, {$name}, to {-brand-name}!
@@ -227,6 +252,9 @@ date2 = Now is: {DATETIME($date, hour: "numeric", minute: "numeric")}.
 time-elapse1 = Time elapsed: {NUMBER($duration, minimumFractionDigits: 0)}s.
 time-elapse2 = Time elapsed: {NUMBER($duration)}s.
 time-elapse3 = Time elapsed: {NUMBER($duration, minimumFractionDigits: 2)}s.
+
+
+own-function = Today is: {MYFUNC($date)}.
 '));
 		return $bundle;
 	}

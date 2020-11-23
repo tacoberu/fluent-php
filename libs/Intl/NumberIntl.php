@@ -12,7 +12,7 @@ namespace Taco\FluentIntl;
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/NumberFormat
  * https://tc39.es/ecma402/#numberformat-objects
  */
-class NumberIntl
+class NumberIntl implements FuncIntl
 {
 	const CURRENCY_DISPLAY = 'currencyDisplay';
 	const MINIMUM_INTEGER_DIGITS = 'minimumIntegerDigits';

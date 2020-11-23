@@ -14,7 +14,7 @@ use DateTime;
  * https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Intl/DateTimeFormat
  * https://tc39.es/ecma402/#datetimeformat-objects
  */
-class DateTimeIntl
+class DateTimeIntl implements FuncIntl
 {
 	const HOUR12 = 'hour12';
 	const WEEKDAY = 'weekday';

@@ -31,7 +31,7 @@ class FluentParserTokensTest extends PHPUnit_Framework_TestCase
 	 */
 	function testExpr($token, array $args, $str, $msg)
 	{
-		$translators = ['NUMBER' => new NumberIntl('cs-CZ')];
+		$translators = new FluentFunctionStaticResource('cs-CZ');
 		$this->assertEquals($str, (string)$token);
 		$this->assertEquals($msg, $token->invoke($translators, $args));
 	}
@@ -120,7 +120,7 @@ class FluentParserTokensTest extends PHPUnit_Framework_TestCase
 
 	function testChoice1()
 	{
-		$translators = ['NUMBER' => new NumberIntl('cs-CZ')];
+		$translators = new FluentFunctionStaticResource('cs-CZ');
 		$inst = new Choice([
 			'male' => 'his stream',
 			'female' => 'her stream',
@@ -136,7 +136,7 @@ class FluentParserTokensTest extends PHPUnit_Framework_TestCase
 
 	function testChoice2()
 	{
-		$translators = ['NUMBER' => new NumberIntl('cs-CZ')];
+		$translators = new FluentFunctionStaticResource('cs-CZ');
 		$inst = new Choice([
 			'male' => 'his stream',
 			'other' => new Expr('added {$photoCount} new photos', [
@@ -153,7 +153,7 @@ class FluentParserTokensTest extends PHPUnit_Framework_TestCase
 
 	function testChoice3()
 	{
-		$translators = ['NUMBER' => new NumberIntl('cs-CZ')];
+		$translators = new FluentFunctionStaticResource('cs-CZ');
 		$inst = new Choice([
 			'Male' => 'his stream',
 			'other' => new Expr('added {$photoCount} new photos', [
@@ -173,7 +173,7 @@ class FluentParserTokensTest extends PHPUnit_Framework_TestCase
 	 */
 	function testFormat()
 	{
-		$translators = ['NUMBER' => new NumberIntl('cs-CZ')];
+		$translators = new FluentFunctionStaticResource('cs-CZ');
 		$inst = new Format('NUMBER', ['val'], [
 			'minimumFractionDigits' => 3,
 		]);

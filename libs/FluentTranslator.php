@@ -10,16 +10,13 @@ namespace Taco\FluentIntl;
 class FluentTranslator
 {
 	private $lang;
-	private $formaters = [];
+	private $functions;
 	private $items = [];
 
-	function __construct($lang)
+	function __construct($lang, FluentFunctionResource $functionResource = Null)
 	{
 		$this->lang = $lang;
-		$this->formaters = [
-			'DATETIME' => DateTimeIntl::createFromFile($lang, __dir__ . '/Intl'),
-			'NUMBER' => new NumberIntl($lang),
-		];
+		$this->functions = $functionResource ?: new FluentFunctionStaticResource($lang);
 	}
 
 
@@ -72,7 +69,7 @@ class FluentTranslator
 			}
 		}
 		try {
-			return [$msgvalue->invoke($this->formaters, $map), $error];
+			return [$msgvalue->invoke($this->functions, $map), $error];
 		}
 		catch (InvokeException $e) {
 			return [$msgvalue->expression, array_merge($error, [self::makeError('FluentReference', 'Unknown external: ' . implode(', ', $e->getMissingKeys()))])];

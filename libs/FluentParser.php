@@ -288,27 +288,27 @@ class Expr
 
 
 
-	function invoke($translator, array $args)
+	function invoke(FluentFunctionResource $functions, array $args)
 	{
 		$map = [];
 		foreach ($this->args as $key => $type) {
 			switch (True) {
 				// Argument přijímá scalar.
 				case $type === Null && $key[0] !== '$':
-					$map['{$' . $key . '}'] = $map['{' . $key . '}'] = $this->formatValue($translator, self::requireValue($key, $args), $key);
+					$map['{$' . $key . '}'] = $map['{' . $key . '}'] = $this->formatValue($functions, self::requireValue($key, $args), $key);
 					break;
 				case $type === Null:
 					$key = ltrim($key, '$');
-					$map['{$' . $key . '}'] = $this->formatValue($translator, self::requireValue($key, $args), $key);
+					$map['{$' . $key . '}'] = $this->formatValue($functions, self::requireValue($key, $args), $key);
 					break;
 				// Výběr z monžostí.
 				case $type instanceof Choice:
 					$key = ltrim($key, '$');
-					$map['{$' . $key . '}'] = $type->invoke($translator, self::requireValue($key, $args), $args);
+					$map['{$' . $key . '}'] = $type->invoke($functions, self::requireValue($key, $args), $args);
 					break;
 				// Argument se musí nejdříve naformátovat.
 				case $type instanceof Format:
-					$map['{' . $key . '}'] = $type->invoke($translator, self::requireValue(substr($type->getArguments()[0], 1), $args));
+					$map['{' . $key . '}'] = $type->invoke($functions, self::requireValue(substr($type->getArguments()[0], 1), $args));
 					break;
 				default:
 					throw new LogicException("Unsupported type of argument: $key => '$type'.");
@@ -326,16 +326,16 @@ class Expr
 
 
 
-	private function formatValue(array $translators, $val, $key)
+	private function formatValue(FluentFunctionResource $functions, $val, $key)
 	{
 		if (is_string($val)) {
 			return $val;
 		}
 		if (is_numeric($val)) {
-			return self::requireTranslator('NUMBER', $translators)->format($val, []);
+			return self::requireTranslator('NUMBER', $functions)->format($val, []);
 		}
 		if ($val instanceof \DateTime) {
-			return self::requireTranslator('DATETIME', $translators)->format($val, []);
+			return self::requireTranslator('DATETIME', $functions)->format($val, []);
 		}
 		if (is_scalar($val)) {
 			return (string) $val;
@@ -355,12 +355,12 @@ class Expr
 
 
 
-	private static function requireTranslator($key, array $translators)
+	private static function requireTranslator($key, FluentFunctionResource $functions)
 	{
-		if ( ! array_key_exists($key, $translators)) {
+		if ( ! isset($functions[$key])) {
 			throw new LogicException("Function of: $key is not found.");
 		}
-		return $translators[$key];
+		return $functions[$key];
 	}
 }
 
@@ -448,7 +448,7 @@ class Choice
 
 
 
-	function invoke($translator, $key, array $args)
+	function invoke($functions, $key, array $args)
 	{
 		if (array_key_exists($key, $this->opts)) {
 			$msg = $this->opts[$key];
@@ -465,7 +465,7 @@ class Choice
 				return $msg;
 			case $msg instanceof Expr:
 				// assert value exists
-				return $msg->invoke($translator, $args);
+				return $msg->invoke($functions, $args);
 			default:
 				throw new LogicException("Unsupported type of argument: $val => '$msg'.");
 		}
@@ -527,12 +527,9 @@ class Format
 
 
 
-	/**
-	 * @TODO Zobecnit a přidat další funkce.
-	 */
-	function invoke(array $formaters, $val)
+	function invoke(FluentFunctionResource $functions, $val)
 	{
-		return self::requireTranslator($this->func, $formaters)->format($val, $this->opts);
+		return self::requireTranslator($this->func, $functions)->format($val, $this->opts);
 	}
 
 
@@ -548,12 +545,12 @@ class Format
 
 
 
-	private static function requireTranslator($key, array $translators)
+	private static function requireTranslator($key, FluentFunctionResource $resource)
 	{
-		if ( ! array_key_exists($key, $translators)) {
+		if ( ! isset($resource[$key])) {
 			throw new LogicException("Function of: $key is not found.");
 		}
-		return $translators[$key];
+		return $resource[$key];
 	}
 
 }

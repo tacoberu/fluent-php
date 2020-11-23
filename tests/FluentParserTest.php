@@ -115,7 +115,7 @@ shared-photos =
 
 	function testChoiceSimple()
 	{
-		$translators = ['NUMBER' => new NumberIntl('cs-CZ')];
+		$translators = new FluentFunctionStaticResource('cs-CZ');
 		$inst = new Choice([
 			'first' => 'premier',
 			'second' => 'deuxième',
@@ -131,7 +131,7 @@ shared-photos =
 
 	function testChoiceWithArgs()
 	{
-		$translators = ['NUMBER' => new NumberIntl('cs-CZ')];
+		$translators = new FluentFunctionStaticResource('cs-CZ');
 		$inst = new Choice([
 			'first' => 'premier {$value}',
 			'second' => 'deuxième',
@@ -144,7 +144,7 @@ shared-photos =
 
 	function testExpr()
 	{
-		$translators = ['NUMBER' => new NumberIntl('cs-CZ')];
+		$translators = new FluentFunctionStaticResource('cs-CZ');
 		$inst = new Expr('Welcome, {$name}, to {-brand-name}!', [
 			'$name' => null,
 			'-brand-name' => null,
